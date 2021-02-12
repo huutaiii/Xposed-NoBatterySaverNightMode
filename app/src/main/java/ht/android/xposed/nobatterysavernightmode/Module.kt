@@ -18,7 +18,6 @@ class Module : IXposedHookLoadPackage {
                             override fun beforeHookedMethod(param: MethodHookParam) {
                                 super.beforeHookedMethod(param)
                                 XposedHelpers.setBooleanField(param.thisObject, "mPowerSave", false)
-                                XposedBridge.log("Hooked method \"${param.method.toString()}\" was called")
                             }
                         })
             }

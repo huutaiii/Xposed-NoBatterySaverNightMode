@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">No Battery Saver Night Mode</string>
     <string-array name="xposedscope">
+        <item>android</item>
         <item>com.android.settings</item>
         <item>com.android.systemui</item>
     </string-array>
