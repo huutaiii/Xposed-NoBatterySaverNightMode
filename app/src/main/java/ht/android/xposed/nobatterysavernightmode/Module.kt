@@ -3,6 +3,8 @@
 
 package ht.android.xposed.nobatterysavernightmode
 
+import android.content.Context
+import android.content.res.Configuration
 import de.robv.android.xposed.*
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 
@@ -16,7 +18,6 @@ class Module : IXposedHookLoadPackage {
                         "updateConfigurationLocked",
                         object : XC_MethodHook() {
                             override fun beforeHookedMethod(param: MethodHookParam) {
-                                super.beforeHookedMethod(param)
                                 XposedHelpers.setBooleanField(param.thisObject, "mPowerSave", false)
                             }
                         })
@@ -29,7 +30,6 @@ class Module : IXposedHookLoadPackage {
                         Runnable::class.java,
                         object : XC_MethodHook() {
                             override fun beforeHookedMethod(param: MethodHookParam) {
-                                super.beforeHookedMethod(param)
                                 param.result = null
                             }
                         })
@@ -41,23 +41,33 @@ class Module : IXposedHookLoadPackage {
                                 return false
                             }
                         })
-//                XposedHelpers.findAndHookMethod(
-//                        "com.android.settings.display.darkmode.DarkModeActivationPreferenceController",
-//                        lpparam.classLoader,
-//                        "updateState",
-//                        object : XC_MethodHook() {
-//                            override fun afterHookedMethod(param: MethodHookParam) {
-//                                super.afterHookedMethod(param)
-//                                val mPowerManager = XposedHelpers.getObjectField(param.thisObject, "mPowerManager")
-//                                val batterySaver = XposedHelpers.callMethod(mPowerManager, "isPowerSaveMode") as Boolean
-//                                if (batterySaver) {
-//                                    val context = XposedHelpers.getObjectField(param.thisObject, "mContext") as Context
-//                                    val active = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_YES != 0
-//                                    XposedHelpers.callMethod(param.thisObject, "updateNightMode", active)
-//                                }
-//                            }
-//                        }
-//                )
+                val classActivation = XposedHelpers.findClass("com.android.settings.display.darkmode.DarkModeActivationPreferenceController", lpparam.classLoader)
+                XposedBridge.hookAllMethods(
+                        classActivation,
+                        "updateState",
+                        object : XC_MethodHook() {
+                            override fun afterHookedMethod(param: MethodHookParam) {
+                                val mPowerManager = XposedHelpers.getObjectField(param.thisObject, "mPowerManager")
+                                val batterySaver = XposedHelpers.callMethod(mPowerManager, "isPowerSaveMode") as Boolean
+                                if (batterySaver) {
+                                    val context = XposedHelpers.getObjectField(param.thisObject, "mContext") as Context
+                                    val active = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_YES != 0
+                                    XposedHelpers.callMethod(param.thisObject, "updateNightMode", active)
+                                }
+                            }
+                        }
+                )
+                val classSchedule = XposedHelpers.findClass("com.android.settings.display.darkmode.DarkModeScheduleSelectorController", lpparam.classLoader)
+                XposedBridge.hookAllMethods(
+                        classSchedule,
+                        "updateState",
+                        object : XC_MethodHook() {
+                            override fun afterHookedMethod(param: MethodHookParam) {
+                                val mPreference = XposedHelpers.getObjectField(param.thisObject, "mPreference")
+                                XposedHelpers.callMethod(mPreference, "setEnabled", true)
+                            }
+                        }
+                )
             }
             "com.android.systemui" -> {
                 XposedHelpers.findAndHookMethod(
@@ -68,7 +78,6 @@ class Module : IXposedHookLoadPackage {
                         Object::class.java,
                         object : XC_MethodHook() {
                             override fun afterHookedMethod(param: MethodHookParam) {
-                                super.afterHookedMethod(param)
                                 val state = param.args[0]
                                 val classTile = XposedHelpers.findClass("android.service.quicksettings.Tile", lpparam.classLoader)
                                 val value = XposedHelpers.getBooleanField(state, "value")
